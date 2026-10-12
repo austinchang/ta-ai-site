@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TA AI</title>
+<meta name="description" content="TA (Think Auto) is an AI coding friend for developers: translates comments, errors and docs in VS Code and the browser, reads them aloud in many languages, and remembers how you work.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='6' fill='%23B3352B'/><text x='32' y='44' font-size='30' font-family='serif' font-weight='700' fill='%23F3EFE6' text-anchor='middle'>他</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Cormorant+Garamond:wght@500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Noto+Serif+TC:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a scroll of rice paper. Wide margins, one brushed ensō with 他 at its centre, cinnabar seals as the only colour. Sections open with a single character like a chapter mark. */
+:root{
+  --paper:#F3EFE6; --paper-2:#ECE6DA; --ink:#1F1D1A; --ink-soft:#4A463F; --muted:#7A7468; --line:#D8D0C1;
+  --seal:#B3352B; --seal-soft:#F1DDD6; --on-seal:#F7F3EA;
+  --ed-bg:#1F1E1B; --ed-fg:#E6E0D2; --ed-dim:#8C8679; --ed-line:#34322D; --ed-kw:#CDB68A; --ed-str:#E09A8C; --ed-fn:#A9C4A5; --ed-err:#E8796C; --ed-mark:#B3352B;
+  --f-brush:"Ma Shan Zheng","STXingkai","Kaiti TC",cursive;
+  --f-display:"Cormorant Garamond",Georgia,"Noto Serif TC",serif;
+  --f-body:"Source Serif 4",Georgia,"Noto Serif TC","Songti TC",serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#151412; --paper-2:#1C1A17; --ink:#ECE6D8; --ink-soft:#C9C2B2; --muted:#958E80; --line:#2E2B26;
+  --seal:#D25446; --seal-soft:#3A201C; --on-seal:#151412; --ed-bg:#0F0E0C; --ed-line:#2A2824; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --paper:#151412; --paper-2:#1C1A17; --ink:#ECE6D8; --ink-soft:#C9C2B2; --muted:#958E80; --line:#2E2B26;
+  --seal:#D25446; --seal-soft:#3A201C; --on-seal:#151412; --ed-bg:#0F0E0C; --ed-line:#2A2824; color-scheme:dark }
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.85 var(--f-body);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;line-height:1.15;text-wrap:balance;margin:0}
+p{margin:0}
+a{color:var(--seal)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--seal);outline-offset:3px}
+.wrap{max-width:1080px;margin-inline:auto;padding-inline:24px}
+.label{display:inline-flex;align-items:center;gap:12px;font:500 12px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.label i{font:400 30px/1 var(--f-brush);font-style:normal;color:var(--seal);letter-spacing:0;text-transform:none}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;font:600 15px/1 var(--f-body);padding:14px 22px;border-radius:2px;text-decoration:none;letter-spacing:.02em}
+.btn.solid{background:var(--ink);color:var(--paper)}
+.btn.line{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink-soft)}
+.btn.sm{padding:10px 16px;font-size:14px}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(6px)}
+nav{display:flex;align-items:center;justify-content:space-between;gap:16px;height:64px}
+.brand{display:flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none;font:600 20px/1 var(--f-display);letter-spacing:.04em}
+.seal-sm{display:grid;place-items:center;width:30px;height:30px;border-radius:3px;background:var(--seal);color:var(--on-seal);font:400 20px/1 var(--f-brush)}
+nav ul{display:flex;gap:30px;list-style:none;margin:0;padding:0;font-size:14px}
+nav ul a{color:var(--muted);text-decoration:none}
+nav ul a:hover{color:var(--ink)}
+
+.rule{height:2px;border:0;margin:0;background:linear-gradient(90deg,transparent,var(--ink) 12%,var(--ink) 70%,transparent);opacity:.18}
+
+.hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:40px;align-items:center;padding-block:56px 48px}
+.hero-text{display:grid;gap:26px;min-width:0}
+.acro{font:500 13px/1.6 var(--f-mono);letter-spacing:.08em;color:var(--muted)}
+.acro b{color:var(--seal);font-weight:500}
+.hero h1{font-size:clamp(42px,6.2vw,80px);font-weight:500;letter-spacing:-.01em}
+.hero h1 em{font-style:italic;color:var(--seal)}
+.lead{font-size:clamp(17px,1.9vw,19px);color:var(--ink-soft);max-width:34em}
+.cta{display:flex;flex-wrap:wrap;gap:12px}
+.mark{position:relative;aspect-ratio:1;width:100%;max-width:440px;justify-self:center}
+.mark canvas{position:absolute;inset:0;width:100%;height:100%}
+.mark .ta{position:absolute;inset:0;display:grid;place-items:center;font:400 clamp(130px,19vw,220px)/1 var(--f-brush);color:var(--ink);padding-bottom:4%}
+.mark .seal{position:absolute;right:4%;bottom:8%;width:56px;height:56px;background:var(--seal);color:var(--on-seal);border-radius:4px;display:grid;place-items:center;font:600 13px/1.1 var(--f-display);letter-spacing:.08em;text-align:center;transform:rotate(-3deg)}
+.mark .vert{position:absolute;left:0;top:6%;writing-mode:vertical-rl;font:400 15px/1 var(--f-body);letter-spacing:.5em;color:var(--muted)}
+
+.editor{background:var(--ed-bg);color:var(--ed-fg);border-radius:4px;overflow:hidden;border:1px solid var(--ed-line);margin-bottom:12px}
+.ed-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--ed-line);font:400 12px/1 var(--f-mono);color:var(--ed-dim)}
+.tabs{display:flex;gap:4px}
+.tab{font:500 12px/1 var(--f-mono);color:var(--ed-dim);background:transparent;border:0;border-bottom:2px solid transparent;padding:8px 10px;cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ed-fg);border-bottom-color:var(--ed-mark)}
+.langs{display:flex;gap:4px;flex-wrap:wrap}
+.lang{font:500 12px/1 var(--f-body);color:var(--ed-dim);background:transparent;border:1px solid var(--ed-line);border-radius:2px;padding:6px 10px;cursor:pointer}
+.lang[aria-pressed="true"]{background:var(--ed-mark);border-color:var(--ed-mark);color:#F7F3EA}
+.ed-body{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+.code{margin:0;padding:18px 0;overflow-x:auto;font:400 13.5px/1.75 var(--f-mono);min-width:0}
+.code .ln{display:block;padding-inline:16px;white-space:pre}
+.code .ln::before{content:attr(data-n);display:inline-block;width:2.2em;color:var(--ed-dim);opacity:.6}
+.c{color:var(--ed-dim)} .k{color:var(--ed-kw)} .s{color:var(--ed-str)} .f{color:var(--ed-fn)} .e{color:var(--ed-err)}
+.hit{background:color-mix(in srgb,var(--ed-mark) 16%,transparent);box-shadow:inset 2px 0 0 var(--ed-mark)}
+.hover{border-left:1px solid var(--ed-line);padding:20px;display:grid;gap:14px;align-content:start;min-width:0}
+.hover .label{color:var(--ed-dim)}
+.hover .src{font:400 13px/1.6 var(--f-mono);color:var(--ed-dim)}
+.hover .out{font:400 18px/1.8 var(--f-body);color:var(--ed-fg)}
+.speak{display:flex;gap:8px;flex-wrap:wrap}
+.say{display:inline-flex;align-items:center;gap:6px;font:500 13px/1 var(--f-body);color:var(--ed-fg);background:transparent;border:1px solid var(--ed-line);border-radius:2px;padding:8px 12px;cursor:pointer}
+.say:hover{border-color:var(--ed-dim)}
+.say svg{width:14px;height:14px;fill:currentColor}
+.ed-status{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 14px;border-top:1px solid var(--ed-line);font:400 11.5px/1.4 var(--f-mono);color:var(--ed-dim)}
+.note{font-size:13px;color:var(--muted)}
+
+section{padding-block:96px}
+.sec-head{display:grid;gap:14px;max-width:42em;margin-bottom:48px}
+.sec-head h2{font-size:clamp(32px,4.4vw,52px);font-weight:500}
+.sec-head p{color:var(--ink-soft)}
+
+.feats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:48px 44px}
+.feat{display:grid;gap:10px;align-content:start;padding-top:18px;border-top:1px solid var(--line)}
+.feat h3{font-size:25px;font-weight:600}
+.feat p{color:var(--ink-soft);font-size:15.5px}
+code.t{font:400 13px/1.6 var(--f-mono);background:var(--paper-2);color:var(--seal);padding:2px 6px;border-radius:2px}
+
+.knows{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center}
+.mem{background:var(--paper);border-radius:2px;padding:24px 26px;position:relative}
+.mem::after{content:"記";position:absolute;right:18px;top:-18px;width:40px;height:40px;background:var(--seal);color:var(--on-seal);border-radius:3px;display:grid;place-items:center;font:400 24px/1 var(--f-brush);transform:rotate(4deg)}
+.mem-h{display:flex;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.mem ul{list-style:none;margin:0;padding:0}
+.mem li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;padding-block:13px;border-bottom:1px dashed var(--line);font-size:15.5px}
+.mem li:last-child{border-bottom:0}
+.mem .mk{font:500 12px/1.9 var(--f-mono);color:var(--seal);letter-spacing:.06em}
+#knows code.t{background:var(--paper-2)}
+
+.dict{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.term{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:20px;background:var(--paper)}
+.term .w{font:500 18px/1.3 var(--f-mono)}
+.term .ipa{font:400 13px/1.5 var(--f-mono);color:var(--seal)}
+.term .tip{grid-column:1/-1;font-size:14px;color:var(--ink-soft)}
+.term button{grid-row:1/3;grid-column:2;align-self:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;display:grid;place-items:center}
+.term button:hover{border-color:var(--seal);color:var(--seal)}
+.term button svg{width:16px;height:16px;fill:currentColor}
+#tts-note{margin-top:16px}
+
+.who{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:44px}
+.who h3{font-size:24px;margin-bottom:8px}
+.who p{color:var(--ink-soft);font-size:15.5px}
+
+ol.road{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:44px;counter-reset:r}
+ol.road li{counter-increment:r;display:grid;gap:10px;align-content:start}
+ol.road li::before{content:counter(r,cjk-decimal);font:400 52px/1 var(--f-brush);color:var(--ink)}
+ol.road h3{font-size:25px}
+ol.road p{color:var(--ink-soft);font-size:15.5px}
+.tag{justify-self:start;font:500 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;padding:6px 8px;border:1px solid var(--seal);color:var(--seal);border-radius:2px}
+
+.join{background:var(--ink);color:var(--paper);border-radius:2px;padding:56px clamp(24px,5vw,64px);display:grid;gap:22px;position:relative;overflow:hidden}
+.join::after{content:"他";position:absolute;right:-10px;bottom:-60px;font:400 260px/1 var(--f-brush);color:var(--paper);opacity:.06;pointer-events:none}
+.join .label{color:var(--paper);opacity:.75}
+.join h2{font-size:clamp(32px,4.4vw,52px);font-weight:500}
+.join p{opacity:.82;max-width:36em}
+.mailrow{display:flex;flex-wrap:wrap;gap:12px;align-items:center;position:relative;z-index:1}
+.mail{font:500 clamp(18px,2.4vw,24px)/1 var(--f-mono);user-select:all;padding:14px 18px;border-radius:2px;background:color-mix(in srgb,var(--paper) 10%,transparent)}
+.join .btn{background:var(--seal);color:#F7F3EA}
+.join .btn.ghost{background:transparent;color:var(--paper);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--paper) 45%,transparent)}
+#copied{font-size:14px;min-height:1.5em}
+
+footer.site{padding-block:48px 64px;color:var(--muted);font-size:14px;display:grid;gap:20px}
+footer.site .en{max-width:62em;font-size:13.5px;line-height:1.8}
+sup{font:500 .62em/0 var(--f-mono)} sup a{text-decoration:none}
+.src{margin:0;padding-left:1.2em;font-size:12.5px;display:grid;gap:4px}
+footer.site .row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+
+.problem{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:start}
+.day{list-style:none;margin:0;padding:0;border-left:1px solid var(--line)}
+.day li{position:relative;padding:0 0 22px 26px}
+.day li::before{content:"";position:absolute;left:-5px;top:9px;width:9px;height:9px;border-radius:50%;background:var(--paper);box-shadow:inset 0 0 0 2px var(--seal)}
+.day time{font:500 12px/1 var(--f-mono);letter-spacing:.08em;color:var(--seal);display:block;margin-bottom:6px}
+.day p{font-size:15.5px;color:var(--ink-soft)}
+.day b{color:var(--ink);font-weight:600}
+.cost{font:400 clamp(26px,3vw,34px)/1.35 var(--f-display);font-style:italic;color:var(--ink)}
+.cost-note{margin-top:14px;color:var(--ink-soft);font-size:15.5px}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:44px}
+.three .big{display:block;font:400 56px/1 var(--f-brush);color:var(--seal);margin-bottom:14px}
+.three h3{font-size:24px;margin-bottom:8px}
+.three p{color:var(--ink-soft);font-size:15.5px}
+.cmp-wrap{overflow-x:auto;border:1px solid var(--line)}
+table.cmp{width:100%;min-width:640px;border-collapse:collapse;font-size:15px}
+.cmp th,.cmp td{padding:14px 18px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+.cmp thead th{font:500 12px/1.3 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--paper-2)}
+.cmp thead th.us{color:var(--seal)}
+.cmp td.us{background:color-mix(in srgb,var(--seal) 6%,transparent)}
+.cmp tbody tr:last-child td,.cmp tbody tr:last-child th{border-bottom:0}
+.cmp tbody th{font-weight:600}
+.y,.n,.h{font:500 13px/1 var(--f-mono);white-space:nowrap}
+.y{color:var(--seal)} .n{color:var(--muted)} .h{color:var(--ink-soft)}
+.cmp-key{margin-top:12px}
+.market{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:56px;align-items:center}
+.rings{width:100%;max-width:420px;justify-self:center}
+.rings svg{width:100%;height:auto;display:block}
+.rings text{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;fill:var(--muted)}
+.rings .c1{fill:var(--seal);stroke:none}
+.rings .c2,.rings .c3{fill:none;stroke:var(--ink);stroke-width:1.5}
+.rings .c3{stroke-dasharray:3 6;opacity:.6}
+.rings .lbl1{fill:var(--on-seal);font-size:12px}
+.mk-list{list-style:none;margin:0;padding:0;display:grid;gap:26px}
+.mk-list li{display:grid;grid-template-columns:56px minmax(0,1fr);gap:16px}
+.mk-list .n{font:400 34px/1 var(--f-brush);color:var(--seal)}
+.mk-list h3{font-size:22px;margin-bottom:4px}
+.mk-list p{color:var(--ink-soft);font-size:15.5px}
+.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--line)}
+.plan{padding:28px;display:grid;gap:12px;align-content:start;border-right:1px solid var(--line)}
+.plan:last-child{border-right:0}
+.plan.mid{background:var(--paper-2)}
+.plan h3{font-size:26px}
+.plan .who-for{font-size:14px;color:var(--muted)}
+.plan ul{margin:0;padding-left:1.1em;color:var(--ink-soft);font-size:15px;display:grid;gap:6px}
+.plans-note{margin-top:14px}
+.ways{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:36px 56px}
+.way{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px}
+.way .ch{font:400 34px/1 var(--f-brush);color:var(--seal)}
+.way h3{font-size:22px;margin-bottom:6px}
+.way p{color:var(--ink-soft);font-size:15.5px}
+.founder{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:56px;align-items:start}
+.founder blockquote{margin:0;font:400 clamp(24px,3vw,34px)/1.45 var(--f-display);font-style:italic}
+.founder .sig{margin-top:22px;display:flex;align-items:center;gap:14px;color:var(--ink-soft);font-size:15px}
+.founder .sig .seal-sm{width:38px;height:38px;font-size:24px}
+.facts{list-style:none;margin:0;padding:0;display:grid}
+.facts li{display:grid;grid-template-columns:120px minmax(0,1fr);gap:14px;padding-block:14px;border-bottom:1px solid var(--line);font-size:15.5px}
+.facts li span:first-child{font:500 12px/1.9 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.faq{display:grid;border-top:1px solid var(--line)}
+.faq details{border-bottom:1px solid var(--line);padding-block:18px}
+.faq summary{cursor:pointer;font:600 20px/1.4 var(--f-display);list-style:none;display:flex;justify-content:space-between;gap:16px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font:400 22px/1 var(--f-mono);color:var(--seal)}
+.faq details[open] summary::after{content:"−"}
+.faq details p{margin-top:10px;color:var(--ink-soft);font-size:15.5px;max-width:44em}
+@media (max-width:860px){
+  .problem,.three,.market,.plans,.ways,.founder{grid-template-columns:1fr;gap:36px}
+  .plan{border-right:0;border-bottom:1px solid var(--line)}
+  .plan:last-child{border-bottom:0}
+  .hero{grid-template-columns:1fr;padding-block:32px 40px}
+  .mark{max-width:300px;grid-row:1}
+  .ed-body{grid-template-columns:1fr}
+  .hover{border-left:0;border-top:1px solid var(--ed-line)}
+  .feats,ol.road,.who,.knows{grid-template-columns:1fr;gap:36px}
+}
+@media (max-width:640px){
+  nav ul{display:none}
+  section{padding-block:64px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap"><nav>
+  <a class="brand" href="#top"><span class="seal-sm">他</span>TA AI</a>
+  <ul>
+    <li><a href="#problem">Problem</a></li>
+    <li><a href="#features">Product</a></li>
+    <li><a href="#market">Market</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+  <a class="btn solid sm" href="#join">Join the waitlist</a>
+</nav></div><hr class="rule"></header>
+
+<main id="top">
+<div class="wrap">
+  <div class="hero">
+    <div class="hero-text">
+      <p class="acro"><b>T</b>hink <b>A</b>uto · pronounced <b>tā</b>, 他, “him” in Mandarin</p>
+      <h1>Meet TA, the coding friend who <em>gets you</em>.</h1>
+      <p class="lead">TA is an AI assistant that lives in VS Code and your browser. He reads foreign-language docs for you, reads them aloud, explains errors and walks through code with you, in your own language. No switching windows, no copy and paste, and he learns more about you every day.</p>
+      <div class="cta">
+        <a class="btn solid" href="#join">Join the waitlist</a>
+        <a class="btn line" href="#demo">Try the demo</a>
+      </div>
+    </div>
+    <div class="mark" aria-hidden="true">
+      <canvas id="enso"></canvas>
+      <span class="ta">他</span>
+      <span class="vert">思而自動 · 懂你所想</span>
+      <span class="seal">THINK<br>AUTO</span>
+    </div>
+  </div>
+
+  <div class="editor" id="demo" aria-label="TA demo inside VS Code">
+    <div class="ed-bar">
+      <div class="tabs" role="tablist" aria-label="Example">
+        <button class="tab" type="button" role="tab" id="tab-c" data-s="comment" aria-selected="true">debounce.ts</button>
+        <button class="tab" type="button" role="tab" id="tab-e" data-s="error" aria-selected="false">Terminal</button>
+      </div>
+      <div class="langs" role="group" aria-label="Translate to">
+        <button class="lang" type="button" id="l-zh" data-l="zh" aria-pressed="true">繁中</button>
+        <button class="lang" type="button" id="l-ja" data-l="ja" aria-pressed="false">日本語</button>
+        <button class="lang" type="button" id="l-ko" data-l="ko" aria-pressed="false">한국어</button>
+        <button class="lang" type="button" id="l-es" data-l="es" aria-pressed="false">Español</button>
+      </div>
+    </div>
+    <div class="ed-body">
+      <pre class="code" id="code"></pre>
+      <div class="hover" aria-live="polite">
+        <span class="label">TA · hover to translate</span>
+        <p class="src" id="src"></p>
+        <p class="out" id="out"></p>
+        <div class="speak">
+          <button class="say" type="button" id="say-src"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>Read original</button>
+          <button class="say" type="button" id="say-out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg><span id="say-out-t">Read translation</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="ed-status"><span>TA: English → <span id="st-lang">Traditional Chinese</span></span><span>Code and tech terms stay as they are</span></div>
+  </div>
+  <p class="note">Sample content prepared for this demo. Read-aloud uses your browser’s built-in voices.</p>
+</div>
+
+<section id="problem"><div class="wrap">
+  <div class="sec-head">
+    <span class="label"><i>問</i>The problem</span>
+    <h2>Code is written in English. Most of the people writing it aren’t native speakers.</h2>
+    <p>More than 180 million developers build on GitHub, and roughly 5 in 6 of them are outside the United States.<sup><a href="#src">1</a></sup> They are fluent in code, but every doc, error message, issue thread and meeting adds a small language tax. It never shows up in a sprint report, yet it’s paid every day.</p>
+  </div>
+  <div class="problem">
+    <ol class="day" aria-label="A typical day">
+      <li><time>09:40</time><p>A new library. The README is in English, the best issue thread is in Japanese. <b>Two browser tabs and a translation site later</b>, back to the editor.</p></li>
+      <li><time>11:15</time><p><b>A red stack trace.</b> The words are clear one by one, but what it actually means takes ten minutes of searching.</p></li>
+      <li><time>14:00</time><p>Writing a PR description. <b>Drafted in Chinese, pasted into a translator, fixed by hand</b> so it doesn’t sound machine-made.</p></li>
+      <li><time>16:30</time><p>Stand-up with the overseas team. <b>Not sure whether it’s “ku-ber-NEET-ees” or “koo-ber-NET-eez”</b>, so the word gets avoided.</p></li>
+    </ol>
+    <div>
+      <p class="cost">The tools exist, but they live in other windows, they don’t understand code, and they forget you every time.</p>
+      <p class="cost-note">Translation sites mangle code and terminology. AI chat assistants answer when asked, in English first, and start from zero in every conversation. Nothing sits where the reading actually happens, speaks the words out loud, and remembers who you are.</p>
+    </div>
+  </div>
+</div></section>
+
+<section id="features"><div class="wrap">
+  <div class="sec-head">
+    <span class="label"><i>能</i>What TA does</span>
+    <h2>Wherever you get stuck, he’s already there.</h2>
+    <p>TA isn’t another window to switch to. He sits right where you’re reading, and speaks up when you pause.</p>
+  </div>
+  <div class="feats">
+    <div class="feat"><h3>He helps you read</h3><p>Hover over an English comment, a README or a Japanese issue and TA translates it into your language. Terms like <code class="t">map()</code> and <code class="t">Promise</code> stay untouched, and code is never translated.</p></div>
+    <div class="feat"><h3>He reads it aloud</h3><p>Any text, read in English, Japanese, Korean, Spanish and more. Listen when your eyes are tired, or rehearse with him before a meeting.</p></div>
+    <div class="feat"><h3>He helps you debug</h3><p>When the terminal turns red, TA tells you in plain words what happened, which line is most likely the cause, and what to try next.</p></div>
+    <div class="feat"><h3>He helps you speak up</h3><p>Draft commit messages, PR descriptions and issue replies in your own language. TA rewrites them in natural engineering English and lets you compare before you send.</p></div>
+    <div class="feat"><h3>He reads code with you</h3><p>Taking over someone else’s project? Select a block and ask “what does this do?” TA explains it step by step, in your language.</p></div>
+    <div class="feat"><h3>He remembers you</h3><p>Your languages, the words you keep looking up, how much detail you like. TA remembers, so you never start from zero.</p></div>
+  </div>
+</div></section>
+
+<section id="knows" style="background:var(--paper-2)"><div class="wrap knows">
+  <div class="sec-head" style="margin-bottom:0">
+    <span class="label"><i>懂</i>He knows you</span>
+    <h2>A good friend doesn’t need the backstory every time.</h2>
+    <p>Most translation tools treat you like a stranger on every request. TA remembers your habits and your projects, so his explanations land at the right level. Memories stay in your account, and you can view or delete them anytime.</p>
+  </div>
+  <div class="mem" aria-label="What TA remembers (example)">
+    <div class="mem-h"><span class="label">What TA remembers</span><span class="label">Example</span></div>
+    <ul>
+      <li><span class="mk">You</span><p>Write mostly TypeScript and Python at a startup in Taipei.</p></li>
+      <li><span class="mk">Prefs</span><p>Explanations in Traditional Chinese, tech terms kept in English.</p></li>
+      <li><span class="mk">Often</span><p>Asked about <code class="t">debounce</code> three times this week, so today he leads with an example.</p></li>
+      <li><span class="mk">Project</span><p><code class="t">OrderSync</code> is your team’s order service. Never translate it.</p></li>
+      <li><span class="mk">Goal</span><p>Giving a tech talk in English next month. Practice five words a day.</p></li>
+    </ul>
+  </div>
+</div></section>
+
+<section id="why"><div class="wrap">
+  <div class="sec-head">
+    <span class="label"><i>時</i>Why now</span>
+    <h2>Three things changed in the last two years.</h2>
+  </div>
+  <div class="three">
+    <div><span class="big">譯</span><h3>Translation that understands code</h3><p>Frontier models like Claude now translate technical text accurately, keep identifiers intact, and explain an error instead of just converting its words.</p></div>
+    <div><span class="big">聲</span><h3>Natural voices in every language</h3><p>Speech synthesis now sounds human in dozens of languages, and is cheap enough to read every doc and comment aloud on demand.</p></div>
+    <div><span class="big">記</span><h3>Assistants that can remember</h3><p>Long context and memory let an assistant keep a lasting picture of one developer: their languages, projects and habits. That turns a tool into a companion.</p></div>
+  </div>
+</div></section>
+
+<section id="different" style="padding-top:0"><div class="wrap">
+  <div class="sec-head">
+    <span class="label"><i>異</i>How TA is different</span>
+    <h2>Not another translator. Not another chatbot.</h2>
+    <p>TA does one job the others skip: he sits inside the reading, speaks it, and knows who he’s talking to.</p>
+  </div>
+  <div class="cmp-wrap">
+    <table class="cmp">
+      <thead><tr><th scope="col"></th><th scope="col" class="us">TA</th><th scope="col">Translation sites</th><th scope="col">AI chat assistants</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Works where you read, without asking</th><td class="us"><span class="y">● Yes</span></td><td><span class="n">○ No</span></td><td><span class="h">◐ When asked</span></td></tr>
+        <tr><th scope="row">Leaves code and tech terms intact</th><td class="us"><span class="y">● Yes</span></td><td><span class="n">○ Often not</span></td><td><span class="h">◐ Mostly</span></td></tr>
+        <tr><th scope="row">Reads aloud in many languages</th><td class="us"><span class="y">● Yes</span></td><td><span class="h">◐ Basic</span></td><td><span class="n">○ Rarely</span></td></tr>
+        <tr><th scope="row">Teaches how to say tech terms</th><td class="us"><span class="y">● Yes</span></td><td><span class="n">○ No</span></td><td><span class="n">○ No</span></td></tr>
+        <tr><th scope="row">Explains errors in your language</th><td class="us"><span class="y">● Yes</span></td><td><span class="n">○ No</span></td><td><span class="h">◐ English first</span></td></tr>
+        <tr><th scope="row">Remembers you across days</th><td class="us"><span class="y">● Yes</span></td><td><span class="n">○ No</span></td><td><span class="h">◐ Limited</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note cmp-key">● built in · ◐ partly · ○ not available. TA column describes the product we are building.</p>
+</div></section>
+
+<section id="market" style="background:var(--paper-2)"><div class="wrap">
+  <div class="sec-head">
+    <span class="label"><i>市</i>Market</span>
+    <h2>Start small, where we can be the obvious choice. Then widen the circle.</h2>
+  </div>
+  <div class="market">
+    <div class="rings" aria-hidden="true">
+      <svg viewBox="0 0 400 400">
+        <circle class="c3" cx="200" cy="200" r="190"/>
+        <circle class="c2" cx="200" cy="200" r="128"/>
+        <circle class="c1" cx="200" cy="200" r="62"/>
+        <text class="lbl1" x="200" y="198" text-anchor="middle">TAIWAN</text>
+        <text class="lbl1" x="200" y="214" text-anchor="middle">VS CODE</text>
+        <text x="200" y="104" text-anchor="middle">EAST ASIA</text>
+        <text x="200" y="36" text-anchor="middle">EVERY NON-NATIVE DEVELOPER</text>
+      </svg>
+    </div>
+    <ol class="mk-list">
+      <li><span class="n">一</span><div><h3>Mandarin-speaking developers in VS Code</h3><p>Our home market, starting in Taiwan. We speak the language, know the communities, and can talk to every early user in person. VS Code is used by 75.9% of developers,<sup><a href="#src">2</a></sup> so one extension reaches most of them.</p></div></li>
+      <li><span class="n">二</span><div><h3>Japanese and Korean developers</h3><p>Large, English-heavy tech industries with the same daily friction. The product is the same; the voices and glossaries change.</p></div></li>
+      <li><span class="n">三</span><div><h3>Every developer whose first language isn’t English</h3><p>From Latin America to Southeast Asia, this is most of the world’s developers, and the share keeps growing as new developers come online.</p></div></li>
+    </ol>
+  </div>
+</div></section>
+
+<section id="say"><div class="wrap">
+  <div class="sec-head">
+    <span class="label"><i>音</i>Say it right</span>
+    <h2>Words you type every day but aren’t sure how to say.</h2>
+    <p>These are the ones that trip people up in meetings, interviews and screencasts. Tap to listen. In the editor, TA spots words like these in your own code.</p>
+  </div>
+  <div class="dict" id="dict"></div>
+  <p class="note" id="tts-note">Pronunciations follow American English. Some terms have more than one common reading.</p>
+</div></section>
+
+<div class="wrap"><hr class="rule"></div>
+
+<section id="who"><div class="wrap">
+  <div class="sec-head">
+    <span class="label"><i>人</i>Who it’s for</span>
+    <h2>Developers whose first language isn’t English.</h2>
+  </div>
+  <div class="who">
+    <div><h3>People learning to code</h3><p>Docs and error messages are almost all in English. Remove the language barrier and focus on the concepts.</p></div>
+    <div><h3>Engineers on global teams</h3><p>Read your teammates’ issues and write your own PRs without pasting everything into a translation site.</p></div>
+    <div><h3>Anyone who has to talk tech</h3><p>Before a talk, an interview or a stand-up, hear it once first. Say Kubernetes and nginx with confidence.</p></div>
+  </div>
+</div></section>
+
+<div class="wrap"><hr class="rule"></div>
+
+<section id="business"><div class="wrap">
+  <div class="sec-head">
+    <span class="label"><i>商</i>Business model</span>
+    <h2>Free to start. Paid when TA becomes part of your day.</h2>
+    <p>A generous free tier lets anyone try TA inside their editor. People who rely on him every day, and teams who want a shared vocabulary, pay a monthly subscription.</p>
+  </div>
+  <div class="plans">
+    <div class="plan"><h3>Free</h3><p class="who-for">For trying TA</p><ul><li>Hover translation, daily limit</li><li>Read-aloud in major languages</li><li>Pronunciation dictionary</li></ul></div>
+    <div class="plan mid"><h3>Pro</h3><p class="who-for">For individual developers</p><ul><li>Unlimited translation and error explanations</li><li>Writing help for commits, PRs and issues</li><li>Memory: TA learns your languages and projects</li></ul></div>
+    <div class="plan"><h3>Team</h3><p class="who-for">For global engineering teams</p><ul><li>Shared project glossary</li><li>Consistent terminology across the team</li><li>Admin controls and privacy settings</li></ul></div>
+  </div>
+  <p class="note plans-note">Plans are planned, not yet on sale. We will set pricing together with our first users.</p>
+</div></section>
+
+<section id="how" style="background:var(--paper-2)"><div class="wrap">
+  <div class="sec-head">
+    <span class="label"><i>法</i>How we build</span>
+    <h2>A few rules we hold ourselves to.</h2>
+  </div>
+  <div class="ways">
+    <div class="way"><span class="ch">愛</span><div><h3>A few people who love it beats many who like it</h3><p>We would rather have fifty developers who can’t work without TA than five thousand who installed it once.</p></div></div>
+    <div class="way"><span class="ch">聽</span><div><h3>Talk to every early user</h3><p>We onboard testers one by one, watch how they actually read and write, and let what they do, not what they say they want, decide what we build next.</p></div></div>
+    <div class="way"><span class="ch">快</span><div><h3>Ship small, ship often</h3><p>Each release does one thing better. Speed of learning matters more than polish in the early days.</p></div></div>
+    <div class="way"><span class="ch">信</span><div><h3>Your code stays yours</h3><p>TA sends only the text you point at, never trains models on your code, and lets you see and delete everything he remembers.</p></div></div>
+  </div>
+</div></section>
+
+<section id="roadmap"><div class="wrap">
+  <div class="sec-head">
+    <span class="label"><i>道</i>Roadmap</span>
+    <h2>From one extension to a fully AI-native dev environment.</h2>
+  </div>
+  <ol class="road">
+    <li><span class="tag">Now · In development</span><h3>VS Code extension</h3><p>Hover translation, error explanations, read-aloud and native-language-to-English writing. The four things developers need every day, done well first.</p></li>
+    <li><span class="tag">Next · Planned</span><h3>Web app</h3><p>Paste a docs URL or any text to get a side-by-side bilingual version that keeps code blocks intact, with full read-aloud.</p></li>
+    <li><span class="tag">Later · Vision</span><h3>Immersive environment</h3><p>Docs, terminal, code review and team chat, all in your language. TA knows your whole project and becomes a real teammate inside your workspace.</p></li>
+  </ol>
+</div></section>
+
+<section id="founder"><div class="wrap founder">
+  <div>
+    <span class="label"><i>創</i>Founder</span>
+    <blockquote style="margin-top:22px">“I build with AI agents every day, in a language that isn’t my first. TA is the friend I wanted next to me in the editor.”</blockquote>
+    <p class="sig"><span class="seal-sm">他</span>Austin Chang, founder · Taipei</p>
+  </div>
+  <ul class="facts">
+    <li><span>Company</span><span>TA AI, Taipei, Taiwan</span></li>
+    <li><span>Stage</span><span>Pre-seed. VS Code extension in development</span></li>
+    <li><span>Built on</span><span>Claude for translation and reasoning, browser and cloud speech for voice</span></li>
+    <li><span>Next milestone</span><span>Private test with our first group of developers</span></li>
+    <li><span>Contact</span><span>hello@ta-ai.net</span></li>
+  </ul>
+</div></section>
+
+<section id="faq" style="padding-top:0"><div class="wrap">
+  <div class="sec-head">
+    <span class="label"><i>答</i>Questions</span>
+    <h2>Frequently asked.</h2>
+  </div>
+  <div class="faq">
+    <details open><summary>Which languages does TA support?</summary><p>At launch: Traditional Chinese, Simplified Chinese, Japanese, Korean and Spanish, translating from and into English. Read-aloud works in any language your system or our cloud voices support.</p></details>
+    <details><summary>Is my code sent anywhere?</summary><p>Only the text you hover or select is sent for translation. TA never uploads whole files on its own, never trains models on your code, and you can turn memory off at any time.</p></details>
+    <details><summary>Which editors are supported?</summary><p>VS Code first, including editors built on it. A web app for docs and articles comes next. Other editors depend on what our first users ask for.</p></details>
+    <details><summary>How is this different from GitHub Copilot?</summary><p>Copilot helps you write code. TA helps you understand and communicate around it: reading, listening, explaining and speaking. They work well side by side.</p></details>
+    <details><summary>When can I try it?</summary><p>We are opening a private test for a small group first. Join the waitlist and tell us how you work. We reply to every email personally.</p></details>
+  </div>
+</div></section>
+
+<section id="join" style="padding-top:0"><div class="wrap">
+  <div class="join">
+    <span class="label"><i>候</i>Waitlist</span>
+    <h2>We’re picking our first testers one by one.</h2>
+    <p>Email us the languages you code in and the kind of foreign-language content that slows you down most. You’ll be the first to know when the extension opens for testing.</p>
+    <div class="mailrow">
+      <span class="mail" id="mail">hello@ta-ai.net</span>
+      <button class="btn" type="button" id="copy">Copy email</button>
+      <a class="btn ghost" href="mailto:hello@ta-ai.net?subject=TA%20waitlist">Open mail app</a>
+    </div>
+    <p id="copied" aria-live="polite"></p>
+  </div>
+</div></section>
+</main>
+
+<div class="wrap"><footer class="site">
+  <hr class="rule">
+  <p class="en"><strong>About TA AI.</strong> TA (Think Auto, pronounced like 他, Mandarin for “him”) is an early-stage startup in Taipei building an AI assistant for developers that acts like a friend who knows you. It translates code comments, error messages and documentation in place, explains errors in plain language, reads any text aloud in multiple languages, turns native-language drafts into natural engineering English, and remembers each developer’s languages, projects and preferences. We use frontier models such as Claude for translation and reasoning.</p>
+  <ol class="src" id="src">
+    <li>GitHub Octoverse 2025: 180M+ developers on GitHub, 28M in the US. “5 in 6” is our calculation from those figures. <a href="https://octoverse.github.com/" rel="noopener">octoverse.github.com</a></li>
+    <li>Stack Overflow Developer Survey 2025, Technology: Visual Studio Code used by 75.9% of respondents. <a href="https://survey.stackoverflow.co/2025/technology" rel="noopener">survey.stackoverflow.co/2025</a></li>
+  </ol>
+  <div class="row"><span>© 2026 TA AI · Taipei, Taiwan</span><span>ta-ai.net</span></div>
+</footer></div>
+
+<script>
+(function(){
+  function drawEnso(){
+    var c=document.getElementById("enso"); if(!c||!c.getContext)return;
+    var box=c.getBoundingClientRect(), dpr=Math.min(window.devicePixelRatio||1,2);
+    var W=Math.max(1,Math.round(box.width*dpr)); c.width=W; c.height=W;
+    var g=c.getContext("2d"); g.clearRect(0,0,W,W);
+    var ink=getComputedStyle(document.documentElement).getPropertyValue("--ink").trim()||"#1F1D1A";
+    var cx=W*.5, cy=W*.5, R=W*.40, start=-1.15*Math.PI/2, sweep=1.86*Math.PI, base=W*.045;
+    var seed=7; function rnd(){seed=(seed*16807)%2147483647;return seed/2147483647}
+    g.fillStyle=ink;
+    var N=900;
+    for(var i=0;i<N;i++){
+      var t=i/N, a=start+sweep*t;
+      var press=Math.pow(Math.sin(Math.PI*Math.pow(t,.7)),.6);
+      var w=base*(.25+.95*press)*(1-.35*t);
+      var r=R*(1+.025*Math.sin(t*9)+.01*Math.sin(t*23));
+      var x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r;
+      var dry=t>.72?(t-.72)/.28:0;
+      for(var b=0;b<6;b++){
+        if(rnd()<dry*.8)continue;
+        var off=(rnd()-.5)*w;
+        g.globalAlpha=.10+.12*press;
+        g.beginPath();
+        g.arc(x+Math.cos(a)*off,y+Math.sin(a)*off,w*(.18+.2*rnd()),0,Math.PI*2);
+        g.fill();
+      }
+    }
+    g.globalAlpha=1;
+  }
+  drawEnso();
+  var rt; window.addEventListener("resize",function(){clearTimeout(rt);rt=setTimeout(drawEnso,150)});
+  if(window.matchMedia){var mq=matchMedia("(prefers-color-scheme: dark)"); if(mq.addEventListener)mq.addEventListener("change",drawEnso)}
+  new MutationObserver(drawEnso).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+  var LANG={zh:{name:"Traditional Chinese",short:"Chinese",tts:"zh-TW"},ja:{name:"Japanese",short:"Japanese",tts:"ja-JP"},ko:{name:"Korean",short:"Korean",tts:"ko-KR"},es:{name:"Spanish",short:"Spanish",tts:"es-ES"}};
+  var SAMPLES={
+    comment:{
+      code:[
+        ['<span class="c">/**</span>',1],
+        ['<span class="c"> * Debounces the callback so it fires only after the user</span>',1],
+        ['<span class="c"> * stops typing for `wait` milliseconds.</span>',1],
+        ['<span class="c"> */</span>',0],
+        ['<span class="k">export function</span> <span class="f">debounce</span>(fn, wait = <span class="s">300</span>) {',0],
+        ['  <span class="k">let</span> timer;',0],
+        ['  <span class="k">return</span> (...args) =&gt; {',0],
+        ['    clearTimeout(timer);',0],
+        ['    timer = setTimeout(() =&gt; fn(...args), wait);',0],
+        ['  };',0],
+        ['}',0]
+      ],
+      src:"Debounces the callback so it fires only after the user stops typing for `wait` milliseconds.",
+      out:{
+        zh:"對回呼函式做防抖動處理：使用者停止輸入 `wait` 毫秒之後，才會真正執行。",
+        ja:"コールバックをデバウンスし、ユーザーが `wait` ミリ秒入力を止めた後にだけ実行されるようにします。",
+        ko:"콜백을 디바운스하여 사용자가 `wait` 밀리초 동안 입력을 멈춘 뒤에만 실행되도록 합니다.",
+        es:"Aplica debounce al callback para que se ejecute solo cuando el usuario deja de escribir durante `wait` milisegundos."
+      }
+    },
+    error:{
+      code:[
+        ['<span class="c">$ npm run dev</span>',0],
+        ['<span class="c">  VITE v5.4.8  ready in 412 ms</span>',0],
+        ['',0],
+        ['<span class="e">TypeError: Cannot read properties of undefined (reading \'map\')</span>',1],
+        ['<span class="c">    at TodoList (src/TodoList.tsx:14:22)</span>',1],
+        ['<span class="c">    at renderWithHooks (react-dom.development.js:16305)</span>',0]
+      ],
+      src:"TypeError: Cannot read properties of undefined (reading 'map')",
+      out:{
+        zh:"型別錯誤：無法讀取 undefined 的屬性（正在讀取 'map'）。最可能的原因：TodoList.tsx 第 14 行的陣列還沒載入就呼叫了 .map()。可先給預設值 []。",
+        ja:"型エラー：undefined のプロパティを読み取れません（'map' を読み取り中）。TodoList.tsx 14 行目で、配列が読み込まれる前に .map() を呼んでいる可能性が高いです。初期値に [] を設定してください。",
+        ko:"타입 오류: undefined의 속성을 읽을 수 없습니다('map'을 읽는 중). TodoList.tsx 14번째 줄에서 배열이 로드되기 전에 .map()을 호출했을 가능성이 높습니다. 기본값으로 []를 지정해 보세요.",
+        es:"TypeError: no se pueden leer propiedades de undefined (leyendo 'map'). Lo más probable es que en TodoList.tsx, línea 14, se llame a .map() antes de que el arreglo esté cargado. Usa [] como valor inicial."
+      }
+    }
+  };
+  var TERMS=[
+    ["nginx","/ˈɛn.dʒɪn ˈɛks/","Say “engine-x”, not N-G-I-N-X.","engine x"],
+    ["Kubernetes","/ˌkuː.bɚˈnɛt.iːz/","Stress on “net”: koo-ber-NET-eez.","Kubernetes"],
+    ["kubectl","/kjuːb kənˈtroʊl/","Most say “kube-control”. Some say “kube-cuddle”.","cube control"],
+    ["cache","/kæʃ/","Sounds like “cash”, not “catch”.","cash"],
+    ["SQL","/ˈɛs.kjuː.ɛl/ · /ˈsiː.kwəl/","Letter by letter or “sequel”. Both are common.","S Q L, or sequel"],
+    ["Azure","/ˈæʒ.ɚ/","AZH-er, not a-ZOO-ray.","Azure"],
+    ["Vite","/viːt/","French for “fast”. Say “veet”.","veet"],
+    ["deque","/dɛk/","Sounds like “deck”.","deck"],
+    ["width","/wɪdθ/","Ends with a soft “th”, tongue touching the teeth.","width"],
+    ["GIF","/ɡɪf/ · /dʒɪf/","Both are used. Its creator says “jif”.","gif"],
+    ["Linux","/ˈlɪn.əks/","LIN-ucks, with a short first syllable.","Linux"],
+    ["suite","/swiːt/","Sounds like “sweet”, as in test suite.","sweet"]
+  ];
+  var ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>';
+  var state={s:"comment",l:"zh"};
+  var $=function(id){return document.getElementById(id)};
+  var canSpeak="speechSynthesis" in window;
+
+  function speak(text,lang){
+    if(!canSpeak){$("tts-note").textContent="Your browser doesn’t support read-aloud. Try Chrome, Edge or Safari.";return}
+    try{
+      speechSynthesis.cancel();
+      var u=new SpeechSynthesisUtterance(text.replace(/`/g,""));
+      u.lang=lang;u.rate=.95;
+      speechSynthesis.speak(u);
+    }catch(e){$("tts-note").textContent="Read-aloud didn’t start. Check that your browser allows sound on this page."}
+  }
+  function render(){
+    var d=SAMPLES[state.s];
+    $("code").innerHTML=d.code.map(function(r,i){return '<span class="ln'+(r[1]?' hit':'')+'" data-n="'+(i+1)+'">'+(r[0]||' ')+'</span>'}).join("");
+    $("src").textContent=d.src;
+    $("out").textContent=d.out[state.l];
+    $("st-lang").textContent=LANG[state.l].name;
+    $("say-out-t").textContent="Read in "+LANG[state.l].short;
+  }
+  document.querySelectorAll(".tab").forEach(function(b){b.addEventListener("click",function(){
+    document.querySelectorAll(".tab").forEach(function(x){x.setAttribute("aria-selected","false")});
+    b.setAttribute("aria-selected","true");state.s=b.dataset.s;render();
+  })});
+  document.querySelectorAll(".lang").forEach(function(b){b.addEventListener("click",function(){
+    document.querySelectorAll(".lang").forEach(function(x){x.setAttribute("aria-pressed","false")});
+    b.setAttribute("aria-pressed","true");state.l=b.dataset.l;render();
+  })});
+  $("say-src").addEventListener("click",function(){speak(SAMPLES[state.s].src,"en-US")});
+  $("say-out").addEventListener("click",function(){speak(SAMPLES[state.s].out[state.l],LANG[state.l].tts)});
+
+  $("dict").innerHTML=TERMS.map(function(t,i){
+    return '<div class="term"><span class="w">'+t[0]+'</span><button type="button" id="say-'+i+'" data-i="'+i+'" aria-label="Play pronunciation of '+t[0]+'">'+ICON+'</button><span class="ipa">'+t[1]+'</span><span class="tip">'+t[2]+'</span></div>';
+  }).join("");
+  $("dict").addEventListener("click",function(e){var b=e.target.closest("button");if(b)speak(TERMS[+b.dataset.i][3],"en-US")});
+
+  $("copy").addEventListener("click",function(){
+    var out=$("copied"),mail="hello@ta-ai.net";
+    function fallback(){var r=document.createRange();r.selectNodeContents($("mail"));var s=getSelection();s.removeAllRanges();s.addRange(r);out.textContent="Email selected. Press Copy to finish."}
+    try{navigator.clipboard.writeText(mail).then(function(){out.textContent="Copied hello@ta-ai.net"},fallback)}catch(e){fallback()}
+  });
+  render();
+})();
+</script>
+</body>
+</html>

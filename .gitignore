@@ -1,0 +1,4 @@
+*.v-*.html
+body.html
+.DS_Store
+dist/
