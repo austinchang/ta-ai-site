@@ -139,6 +139,17 @@ ol.road li{counter-increment:r;display:grid;gap:10px;align-content:start}
 ol.road li::before{content:counter(r,cjk-decimal);font:400 52px/1 var(--f-brush);color:var(--ink)}
 ol.road h3{font-size:25px}
 ol.road p{color:var(--ink-soft);font-size:15.5px}
+.shipped{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.tool{display:grid;gap:14px;align-content:start;padding:28px;border:1px solid var(--line);border-radius:3px;background:var(--paper)}
+.tool header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.tool h3{font-size:27px}
+.tool .ver{font:500 11.5px/1 var(--f-mono);color:var(--muted);letter-spacing:.06em}
+.tool p{margin:0;color:var(--ink-soft);font-size:15.5px}
+.tool ul{margin:0;padding-left:1.1em;display:grid;gap:4px;color:var(--ink-soft);font-size:14.5px}
+.tool code{font:400 .88em var(--f-mono);background:var(--paper-2);padding:1px 5px;border-radius:2px}
+.tool .stat{font:400 12.5px/1.6 var(--f-mono);color:var(--muted)}
+.tool .links{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+@media (max-width:820px){.shipped{grid-template-columns:1fr}.tool{padding:22px}}
 .tag{justify-self:start;font:500 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;padding:6px 8px;border:1px solid var(--seal);color:var(--seal);border-radius:2px}
 
 .join{background:var(--ink);color:var(--paper);border-radius:2px;padding:56px clamp(24px,5vw,64px);display:grid;gap:22px;position:relative;overflow:hidden}
@@ -260,6 +271,7 @@ table.cmp{width:100%;min-width:640px;border-collapse:collapse;font-size:15px}
     <li><a href="#features">Product</a></li>
     <li><a href="#market">Market</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#shipped">Tools</a></li>
     <li><a href="#faq">FAQ</a></li>
   </ul>
   <a class="btn solid sm" href="#join">Join the waitlist</a>
@@ -499,6 +511,38 @@ table.cmp{width:100%;min-width:640px;border-collapse:collapse;font-size:15px}
   </ol>
 </div></section>
 
+<section id="shipped"><div class="wrap">
+  <div class="sec-head">
+    <span class="label"><i>器</i>Already shipped</span>
+    <h2>We already build tools for working engineers.</h2>
+    <p>Before TA, we built two VS Code extensions for test-automation engineers. Both are free to install today.</p>
+  </div>
+  <div class="shipped">
+    <article class="tool">
+      <header><h3>Tcl Expert</h3><span class="ver">v1.0.0 · VS Code</span></header>
+      <p>Static analysis, navigation and an AI reviewer for Tcl and Expect test scripts.</p>
+      <ul>
+        <li>17 rules catch typos in proc names, wrong argument counts and brace errors as you type</li>
+        <li>Parser matches real <code>tclsh</code> on 3,000 randomized tests</li>
+        <li><code>@tcl</code> chat expert and a Claude Code subagent that know your own framework procs</li>
+      </ul>
+      <p class="stat">43 unit tests · 20 end-to-end checks</p>
+      <div class="links"><a class="btn solid sm" href="https://github.com/austinchang/tcl-expert/releases/latest" rel="noopener">Download</a><a class="btn line sm" href="https://github.com/austinchang/tcl-expert" rel="noopener">Learn more</a></div>
+    </article>
+    <article class="tool">
+      <header><h3>Remote COM Bridge</h3><span class="ver">v1.0.0 · VS Code + CLI</span></header>
+      <p>Use a serial port on another machine as a local <code>COMx</code>, so existing test scripts run unchanged.</p>
+      <ul>
+        <li>RFC 2217 applies baud and line settings to the remote port, binary-safe</li>
+        <li>Self-healing reconnects; stale commands are never replayed to the device</li>
+        <li>Agent turns any PC with a USB-RS232 adapter into a network serial server</li>
+      </ul>
+      <p class="stat">18 unit · 8 integration · 7 extension tests</p>
+      <div class="links"><a class="btn solid sm" href="https://github.com/austinchang/remote-com-bridge/releases/latest" rel="noopener">Download</a><a class="btn line sm" href="https://github.com/austinchang/remote-com-bridge" rel="noopener">Learn more</a></div>
+    </article>
+  </div>
+</div></section>
+
 <section id="founder"><div class="wrap founder">
   <div>
     <span class="label"><i>創</i>Founder</span>
@@ -507,7 +551,7 @@ table.cmp{width:100%;min-width:640px;border-collapse:collapse;font-size:15px}
   </div>
   <ul class="facts">
     <li><span>Company</span><span>TA AI, Taipei, Taiwan</span></li>
-    <li><span>Background</span><span>Test-automation engineer who builds developer tools, including VS Code extensions for Tcl static analysis with AI review and for bridging remote serial ports</span></li>
+    <li><span>Background</span><span>Test-automation engineer who builds developer tools. Shipped <a href="#shipped">Tcl Expert and Remote COM Bridge</a> for VS Code</span></li>
     <li><span>Stage</span><span>Pre-seed. VS Code extension in development</span></li>
     <li><span>Built on</span><span>Claude for translation and reasoning, browser and cloud speech for voice</span></li>
     <li><span>Next milestone</span><span>Private test with our first group of developers</span></li>
@@ -549,7 +593,7 @@ table.cmp{width:100%;min-width:640px;border-collapse:collapse;font-size:15px}
   <hr class="rule">
   <div class="fcols">
     <div class="fbrand"><span class="seal-sm">他</span><span>TA AI<br>Think Auto. The coding friend who gets you.</span></div>
-    <div><h4>Product</h4><ul><li><a href="#demo">Demo</a></li><li><a href="#features">Features</a></li><li><a href="#roadmap">Roadmap</a></li><li><a href="#faq">FAQ</a></li></ul></div>
+    <div><h4>Product</h4><ul><li><a href="#demo">Demo</a></li><li><a href="#features">Features</a></li><li><a href="#roadmap">Roadmap</a></li><li><a href="#shipped">Tools</a></li><li><a href="#faq">FAQ</a></li></ul></div>
     <div><h4>Company</h4><ul><li><a href="#founder">Founder</a></li><li><a href="#join">Waitlist</a></li><li><a href="https://github.com/austinchang/ta-ai-site" rel="noopener">GitHub</a></li></ul></div>
     <div><h4>Legal</h4><ul><li><a href="privacy.html">Privacy</a></li><li><span>hello@ta-ai.net</span></li></ul></div>
   </div>
